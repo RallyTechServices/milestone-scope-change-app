@@ -3,13 +3,13 @@
 <head>
     <title>Milestone Scope Change App</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Tue May 30 2017 20:14:19 GMT-0700 (PDT) -->
+    <!--  Build Date: Wed Jun 07 2017 21:13:51 GMT-0700 (PDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue May 30 2017 20:14:19 GMT-0700 (PDT)";
+        var APP_BUILD_DATE = "Wed Jun 07 2017 21:13:51 GMT-0700 (PDT)";
         var STORY    = "US1453";
         var BUILDER  = "rajan08";
-        var CHECKSUM = 445656793287;
+        var CHECKSUM = 459812547781;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -839,7 +839,7 @@ Ext.define("TSApp", {
         name : "TSApp"
     },
 
-    seriesKeys : ['BaselineScope','BaselineScopeInProgress','BaselineScopeCompleted','AddedScope','AddedScopeInProgress','AddedScopeCompleted'],
+    seriesKeys : ['BaselineScope','BaselineScopeInProgress','BaselineScopeCompleted','AddedScope','RemovedScope','AddedScopeInProgress','AddedScopeCompleted'],
 
     getSettingsFields: function() {
 
@@ -847,6 +847,11 @@ Ext.define("TSApp", {
             fields: ['aggregate'],
             data : [['Count'],['Points']]
         });  
+
+        var artifactStore = new Ext.data.ArrayStore({
+            fields: ['aggregate'],
+            data : [['Feature'],['UserStory']]
+        });          
 
         var baselineTypeStore = new Ext.data.ArrayStore({
             fields: ['baselineType'],
@@ -869,39 +874,54 @@ Ext.define("TSApp", {
                 afterLabelTpl: 'Choose <span style="color:#999999;"><i>Count</i> or <i>points</i></span>'
             },
             {
-                name: 'baselineType',
+                name: 'artifactType',
                 xtype: 'combo',
-                store : baselineTypeStore,
-                valueField : 'baselineType',
-                displayField : 'baselineType',
+                store : artifactStore,
+                valueField : 'aggregate',
+                displayField : 'aggregate',
                 queryMode : 'local',
                 forceSelection : true,
                 boxLabelAlign: 'after',
-                fieldLabel: 'Baseline Day',
+                fieldLabel: 'Artifact Type',
                 margin: '0 0 15 50',
                 labelStyle : "width:200px;",
-                afterLabelTpl: 'Choose <span style="color:#999999;"><i>Count</i> or <i>points</i></span>'
-            },
-            {
-                name: 'queryDescription',
-                xtype: 'rallytextfield',
-                boxLabelAlign: 'after',
-                fieldLabel: 'Query Label',
-                margin: '0 0 15 50',
-                labelStyle : "width:200px;",
-                afterLabelTpl: 'Description of query to show on chart.'
-            },
-            {
-                name: 'queryText',
-                xtype:'textareafield',
-                grow: true,
-                width : 250,
-                boxLabelAlign: 'after',
-                fieldLabel: 'Query',
-                margin: '0 0 15 50',
-                labelStyle : "width:200px;",
-                afterLabelTpl: 'Query to apply to the list of Stories.'
-            }
+                afterLabelTpl: 'Choose Artifiact Type'
+            }            
+            // ,
+            // {
+            //     name: 'baselineType',
+            //     xtype: 'combo',
+            //     store : baselineTypeStore,
+            //     valueField : 'baselineType',
+            //     displayField : 'baselineType',
+            //     queryMode : 'local',
+            //     forceSelection : true,
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Baseline Day',
+            //     margin: '0 0 15 50',
+            //     labelStyle : "width:200px;",
+            //     afterLabelTpl: 'Choose <span style="color:#999999;"><i>Count</i> or <i>points</i></span>'
+            // },
+            // {
+            //     name: 'queryDescription',
+            //     xtype: 'rallytextfield',
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Query Label',
+            //     margin: '0 0 15 50',
+            //     labelStyle : "width:200px;",
+            //     afterLabelTpl: 'Description of query to show on chart.'
+            // },
+            // {
+            //     name: 'queryText',
+            //     xtype:'textareafield',
+            //     grow: true,
+            //     width : 250,
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: 'Query',
+            //     margin: '0 0 15 50',
+            //     labelStyle : "width:200px;",
+            //     afterLabelTpl: 'Query to apply to the list of Stories.'
+            // }
 
         ];
     },
@@ -926,7 +946,7 @@ Ext.define("TSApp", {
         selectorBox.add([{
             xtype: 'datefield',
             anchor: '100%',
-            fieldLabel: 'Start Date',
+            fieldLabel: 'Baseline Date',
             name: 'startDate',
             itemId:'startDate',
             labelWidth: 100,
@@ -1073,8 +1093,21 @@ Ext.define("TSApp", {
                 [ { property:"Ordinal", operator:"!=", value:-1} ]).then({
                     success : function(records) {
                         bundle["piTypes"] = records;
+
+                        me.modelName = 'HierarchicalRequirement';
+                        me.fetch = ['FormattedID','ObjectID', '_ValidTo', '_ValidFrom', 'PlanEstimate','Name','ActualEndDate','ActualStartDate','ScheduleState','Owner'];
+
+                        if(me.getSetting('artifactType') == "Feature"){
+                            me.modelName = _.first(bundle.piTypes).get("TypePath");
+                            me.fetch = ['FormattedID','ObjectID', '_ValidTo', '_ValidFrom', 'PreliminaryEstimate',
+                                        'AcceptedLeafStoryCount', 'AcceptedLeafStoryPlanEstimateTotal', 
+                                        'LeafStoryCount', 'LeafStoryPlanEstimateTotal','PercentDoneByStoryCount',
+                                        'PercentDoneByStoryPlanEstimate','Predecessors','Name','ActualEndDate','ActualStartDate'];
+                        }
+
                         deferred.resolve(bundle);
-                    }
+                    },
+                    scope:me
                 });
         }
         return deferred.promise;
@@ -1123,6 +1156,7 @@ Ext.define("TSApp", {
 
     // called when a data value is clicked. Shows a grid of the storeis that make up that data point.
     showItemsTable : function( event ) {
+        var me = this;
         var that = this;
 
         var scopeChangeFeatures = that.getScopeChangeFeatures(event.series.chart,event.x-1);
@@ -1134,9 +1168,16 @@ Ext.define("TSApp", {
 
         var filter = that.createFilterFromFeatures(event.features);
 
+        var col_cfg = ['Project','Name', 'Owner', 'PlanEstimate'];
+
+        if(me.getSetting('artifactType') == "Feature"){
+            col_cfg = ['Project','Name', 'Owner', 'LeafStoryPlanEstimateTotal'];
+        }
+
+
         Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             // models: ['PortfolioItem/Feature'],
-            models: ['HierarchicalRequirement'],//[_.first(app.bundle.piTypes).get("TypePath")],
+            models: me.modelName, //['HierarchicalRequirement'],//[_.first(app.bundle.piTypes).get("TypePath")],
             filters : [filter],
             autoLoad: true,
             enableHierarchy: true,
@@ -1160,9 +1201,7 @@ Ext.define("TSApp", {
                     enableBulkEdit: false,
                     shouldShowRowActionsColumn: false,
                     enableRanking: false,
-                    columnCfgs: [
-                        'Project','Name', 'Owner', 'PlanEstimate'
-                    ]
+                    columnCfgs: col_cfg
                 });
 
                 that.tabPanel = Ext.create('Ext.tab.Panel', {
@@ -1249,7 +1288,7 @@ Ext.define("TSApp", {
             var filter = Ext.create('TSStringFilter',{query_string: queryText });
 
             Ext.create('Rally.data.WsapiDataStore',{
-            model: 'HierarchicalRequirement',//_.first(bundle.piTypes).get("TypePath"),
+            model: me.modelName, //'HierarchicalRequirement',//_.first(bundle.piTypes).get("TypePath"),
             autoLoad: true,
             limit: 'Infinity',
             filters: [filter,
@@ -1288,12 +1327,13 @@ Ext.define("TSApp", {
         } else {
             find = {
                 "Milestones" : { "$in" : _.map(milestones,function(r){return r.get("ObjectID");})},
-                "_TypeHierarchy" : { "$in" : ['HierarchicalRequirement'] }                
+                "_TypeHierarchy" : { "$in" : [me.modelName] }                
             }
         }
 
         var deferred = new Deft.Deferred();
-        Ext.create('Rally.data.lookback.SnapshotStore', {
+
+        var lb_config = {
             autoLoad : true,
             limit: Infinity,
             listeners: {
@@ -1307,10 +1347,16 @@ Ext.define("TSApp", {
                     deferred.resolve(bundle);
                 }
             },
-            fetch: ['FormattedID','ObjectID', '_ValidTo', '_ValidFrom', 'PlanEstimate','Name','ActualEndDate','ActualStartDate','ScheduleState','Owner'],
-            hydrate: ["Project","Owner","ScheduleState"],      
+            fetch: me.fetch,
             find : find,
-        });
+        };
+
+        if(me.getSetting('artifactType') != "Feature"){
+             lb_config["hydrate"] =  ["Project","Owner","ScheduleState"];     
+        }
+
+
+        Ext.create('Rally.data.lookback.SnapshotStore', lb_config);
         return deferred.getPromise();
     },
 
@@ -1381,7 +1427,7 @@ Ext.define("TSApp", {
 
 
    _categorize : function(bundle) {
-
+        var me = this;
         var categorize = function( feature, dayIndex ) {
             // this function categorizes a story snapshot into one of the following categories
             // Scope, ScopeInProgress, ScopeCompleted
@@ -1399,11 +1445,19 @@ Ext.define("TSApp", {
             };
 
             var progressFunction = function(feature) {
+                if(me.getSetting('artifactType') == "Feature"){
+                    if ((feature.ActualEndDate != null) && (feature.ActualEndDate != "")) 
+                        return "ScopeCompleted";
+                    if ((feature.ActualStartDate != null) && (feature.ActualStartDate != "")) 
+                        return "ScopeInProgress";                    
+                }else{
+                    if ((feature.ScheduleState == "Completed") || (feature.ScheduleState == "Accepted")) 
+                        return "ScopeCompleted";
+                    if (feature.ScheduleState == "In-Progress") 
+                        return "ScopeInProgress";                    
+                }
 
-                if ((feature.ScheduleState == "Completed") || (feature.ScheduleState == "Accepted")) 
-                    return "ScopeCompleted";
-                if (feature.ScheduleState == "In-Progress") 
-                    return "ScopeInProgress";
+
                 return "Scope";
             };
 
@@ -1424,7 +1478,7 @@ Ext.define("TSApp", {
     // prepare the chart data by transforming the data array into a set of highcharts series objects
     _prepareChartData : function( bundle ) {
         var me = this;
-
+        console.log('_prepareChartData',bundle);
         var deferred = new Deft.Deferred();
 
         me.setLoading("Preparing chart...");
@@ -1511,7 +1565,12 @@ Ext.define("TSApp", {
         // sum of story points for the stories
         var pointsReducer = function(features) {
             return _.reduce(features,function(memo,feature) { 
-                return memo + feature.PlanEstimate; }, 0 );
+                if(me.getSetting('artifactType') == "Feature"){
+                    return memo + feature.LeafStoryPlanEstimateTotal;
+                }else{
+                    return memo + feature.PlanEstimate; 
+                }
+            }, 0 );
         };
 
         // sum of preliminary estimate values for the stories
@@ -1536,7 +1595,7 @@ Ext.define("TSApp", {
 
     getBaselineIndex : function() {
         var me = this;
-        return me.getSetting("baselineType");
+        return 1;//me.getSetting("baselineType");
     },
     _loadWsapiRecords: function(config){
         var deferred = Ext.create('Deft.Deferred');
