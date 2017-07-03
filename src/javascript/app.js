@@ -14,7 +14,7 @@ Ext.define("TSApp", {
         name : "TSApp"
     },
 
-    seriesKeys : ['BaselineScope','BaselineScopeInProgress','BaselineScopeCompleted','AddedScope','RemovedScope','AddedScopeInProgress','AddedScopeCompleted'],
+    seriesKeys : ['BaselineScope','BaselineScopeInProgress','BaselineScopeCompleted','AddedScope','AddedScopeInProgress','AddedScopeCompleted'],
 
     getSettingsFields: function() {
 
@@ -663,6 +663,7 @@ Ext.define("TSApp", {
         var series = _.map(me.seriesKeys,function(key){
             return {
                 name : key,
+                pointsOrCount: me.getSetting('aggregateType'),
                 data : _.map( bundle.data, function(d,x){ 
 
                     // if no stories for category return a null value
