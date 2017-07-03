@@ -81,6 +81,78 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                     return sum + pointVal(series);
                 },0);
 
+
+
+                var getScopeChangeFeatures1 = function(chart,x) {
+
+                    var that = this;
+
+                    // aggregate the stories for all series for the selected data
+                    var currentFeatures = _.compact(_.flatten(_.map(chart.series,function(s) { return s.data[x].features })));
+                    var previousFeatures = _.compact(_.flatten(_.map(chart.series,function(s) { return s.data[0].features })));//that.bundle.baseline;
+
+                    // get story ids for comparison
+                    var cFeatures = _.map( currentFeatures, function(f) { return f.FormattedID; });
+                    var pFeatures = _.map( previousFeatures, function(f) { return f.FormattedID; });
+
+                    var removed = _.difference(pFeatures, cFeatures);
+                    var added = _.difference(cFeatures, pFeatures);
+
+                    var findit = function( features, fid ) {
+                        return _.find( features, function(f){ return f.FormattedID === fid; });
+                    }
+
+                    var r = _.map ( removed, function(fid) { 
+                        var f = findit(previousFeatures,fid);
+                        f["Scope"] = "Removed";
+                        return f;
+                    });
+
+                    return r;
+                }
+
+
+
+                var scopeChangeFeatures = getScopeChangeFeatures1(that.series.chart,that.point.x - 1);
+
+                console.log('scopeChangeFeatures>>',scopeChangeFeatures);
+
+
+                var getRemoved = function(state,pointsOrCount) {
+                    return _.reduce( scopeChangeFeatures, function(sum,value) {
+
+                        if(value.FormattedID.indexOf('US') > -1){
+                            if(pointsOrCount == "Points"){
+                                return sum + (value.ScheduleState===state ? value.PlanEstimate : 0);
+                            }else{
+                                return sum + (value.ScheduleState===state ? 1 : 0);
+                            }                            
+                        }else{
+                            if(pointsOrCount == "Points"){
+                                if(state == "In-Progress"){
+                                    return sum + (((value.ActualStartDate != null) && (value.ActualStartDate != "")) ? value.PlanEstimate : 0);
+                                }else if(state == "Completed"){
+                                    return sum + (((value.ActualEndDate != null) && (value.ActualEndDate != "")) ? value.PlanEstimate : 0);
+                                }else{
+                                    return sum + value.PlanEstimate;
+                                }
+                                
+                            }else{
+
+                                if(state == "In-Progress"){
+                                    return sum + (((value.ActualStartDate != null) && (value.ActualStartDate != "")) ? 1 : 0);
+                                }else if(state == "Completed"){
+                                    return sum + (((value.ActualEndDate != null) && (value.ActualEndDate != "")) ? 1 : 0);
+                                }else{
+                                    return sum + 1;
+                                }                                
+                                return sum + (value.ScheduleState===state ? 1 : 0);
+                            }                               
+                        }
+
+                    },0);
+                };
+
                 var inprogress = sumSeries("InProgress");
                 var completed = sumSeries("Completed");
                 var notstarted = total - (completed+inprogress);
@@ -90,6 +162,14 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                 var as = getSeries("AddedScope");
                 var asip = getSeries("AddedScopeInProgress");
                 var asc = getSeries("AddedScopeCompleted");
+
+                var pointsOrCount = that.series.options.pointsOrCount || "";
+
+                var rs = getRemoved("NotStarted",pointsOrCount);
+                var rsip = getRemoved("In-Progress",pointsOrCount);
+                var rsc = getRemoved("Completed",pointsOrCount) + getRemoved("Accepted",pointsOrCount);
+                var tr = rs + rsip + rsc
+
 
                 var ts = bs + as;
                 var tip = bsip + asip;
@@ -114,6 +194,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                         "<td align='center'> </td>"+
                         "<td align='center' style='padding-left:15px;padding-right:15px;'>Baseline</td>"+
                         "<td align='center' style='padding-left:15px;padding-right:15px;'>Added</td>"+
+                        "<td align='center' style='padding-left:15px;padding-right:15px;'>Removed</td>"+
                         "<td align='center' style='padding-left:15px;padding-right:15px;'><b>Total</b></td>"+
                         "<td align='center' style='padding-left:15px;padding-right:0px;'><b>Total %</b></td>"+
                     "</tr>"+
@@ -122,6 +203,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                         "<td>NotStarted</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{bs}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{as}</td>"+
+                        "<td align='right' style='padding-left:15px;padding-right:15px;'>{rs}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{ts}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:0px;'><b>{tnsp}</b></td>"+  
                     "</tr>"+
@@ -130,6 +212,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                         "<td>In-Progress</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{bsip}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{asip}</td>"+
+                        "<td align='right' style='padding-left:15px;padding-right:15px;'>{rsip}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{tip}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:0px;'><b>{tipp}</b></td>"+
                     "</tr>"+
@@ -138,6 +221,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                         "<td>Completed</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{bsc}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'>{asc}</td>"+
+                        "<td align='right' style='padding-left:15px;padding-right:15px;'>{rsc}</td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{tc}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:0px;'><b>{tcp}</b></td>"+
                     "</tr>"+
@@ -146,6 +230,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                         "<td><b>Total</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{tb}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{ta}</b></td>"+
+                        "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{tr}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:15px;'><b>{tt}</b></td>"+
                         "<td align='right' style='padding-left:15px;padding-right:0px;'><b>100%</b></td>"+
                     "</tr>"+
@@ -166,8 +251,9 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
                     series: that.series.name, day: that.point.x, totaldays: totaldays,value: (that.point.y<0?that.point.y*-1:that.point.y),
                     bs:(bs),bsip:bsip,bsc:bsc,
                     as:as,asip:asip,asc:asc,
+                    rs:rs,rsip:rsip,rsc:rsc,
                     ts:ts,tip:tip,tc:tc,
-                    tb:tb,ta:ta,tt:tt,
+                    tb:tb,ta:ta,tr:tr,tt:tt,
                     tbp:tbp,tsp:tsp,ttp:ttp,
                     tnsp:pct(ts,total),tipp:pct(tip,total),tcp:pct(tc,total)
                 });
@@ -232,5 +318,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
         });
         this.callParent(arguments);
 
-    }
+    },
+
+
 });
