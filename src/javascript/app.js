@@ -660,23 +660,26 @@ Ext.define("TSApp", {
 
         var reducerFunction = app.getReducerFunction();
 
+        //var x_date = new Date(me.startDate);
+        
         var series = _.map(me.seriesKeys,function(key){
             return {
                 name : key,
                 pointsOrCount: me.getSetting('aggregateType'),
                 data : _.map( bundle.data, function(d,x){ 
-
+                    // x_date = Ext.Date.add(x_date, Ext.Date.DAY, 1);
+                    //console.log('>>Dates<<',me.startDate, Ext.Date.format(x_date, 'Y-m-d')  );
                     // if no stories for category return a null value
                     if (_.isUndefined(d[key]))  {
                         return { 
-                            x : x, y : null, features : null
+                            x : x+1, y : null, features : null
                         };
                     }
 
                     // return null value for future dates
                     if( (bundle.todayIndex >= 0) && (x > bundle.todayIndex+1)) {
                         return { 
-                            x : x, y : null, features : null
+                            x : x+1, y : null, features : null
                         };
                     }
 
@@ -685,7 +688,7 @@ Ext.define("TSApp", {
                     // if it's not baseline multiply by -1 so it is shown below the x-axis
                     // value = key.startsWith("Baseline") ? value : value * -1;                        
                     // value = key.includes("Baseline") ? value : value * -1;                        
-                    value = (key.indexOf("Baseline") > -1) ? value : value * -1;                        
+                    value = (key.indexOf("Baseline") > -1) ? value : value * -1;
 
                     return {
                         x : x+1, y : value, features : d[key]
@@ -700,7 +703,7 @@ Ext.define("TSApp", {
 
 
     _createChart : function( bundle ) {
-
+        var me = this;
         me.setLoading(false);
 
         var deferred = new Deft.Deferred();
@@ -715,6 +718,9 @@ Ext.define("TSApp", {
             iterationIndices : bundle.iterationIndices,
             baselineIndex : bundle.baselineIndex,
             subtitle : me.getSetting('queryDescription'),
+            title: {
+                text: 'Milestone Scope Change Chart (' + me.getSetting('artifactType') + ' / ' +  me.getSetting('aggregateType') + ')'
+            },
             app : me,
             listeners : {
                 // called when user clicks on a series in the chart

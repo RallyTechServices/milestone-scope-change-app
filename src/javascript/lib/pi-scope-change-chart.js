@@ -18,9 +18,9 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
             type: 'column',
             zoomType: 'xy'
         },
-        title: {
-            text: 'Milestone Scope Change Chart'
-        },
+        // title: {
+        //     text: 'Milestone Scope Change Chart'
+        // },
         // subtitle: {
         //     text: ''
         // },
@@ -89,7 +89,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
 
                     // aggregate the stories for all series for the selected data
                     var currentFeatures = _.compact(_.flatten(_.map(chart.series,function(s) { return s.data[x].features })));
-                    var previousFeatures = _.compact(_.flatten(_.map(chart.series,function(s) { return s.data[0].features })));//that.bundle.baseline;
+                    var previousFeatures = _.compact(_.flatten(_.map(chart.series,function(s) { return s.data[1].features })));//that.bundle.baseline;
 
                     // get story ids for comparison
                     var cFeatures = _.map( currentFeatures, function(f) { return f.FormattedID; });
@@ -115,7 +115,7 @@ Ext.define('Rally.technicalservices.scopeChangeChart',{
 
                 var scopeChangeFeatures = getScopeChangeFeatures1(that.series.chart,that.point.x - 1);
 
-                console.log('scopeChangeFeatures>>',scopeChangeFeatures);
+                // console.log('scopeChangeFeatures>>',scopeChangeFeatures);
 
 
                 var getRemoved = function(state,pointsOrCount) {
